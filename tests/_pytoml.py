@@ -168,13 +168,46 @@ def _open_multiline(text: str) -> bool:
 
 
 def _split_key(key: str) -> list[str]:
+    """Split a dotted key, keeping dots that live inside a quoted segment.
+
+    A per-file-ignores entry such as ``"src/tlslint/lab.py" = [...]`` is a
+    quoted key that contains dots. Splitting on every dot produced the segment
+    ``"src/tlslint/lab`` and then a confusing "unterminated string" from a file
+    that is perfectly valid TOML.
+    """
     parts: list[str] = []
-    for part in key.split("."):
+    buf = ""
+    quote: str | None = None
+    index = 0
+    while index < len(key):
+        ch = key[index]
+        if quote is not None:
+            buf += ch
+            if ch == quote:
+                quote = None
+            index += 1
+            continue
+        if ch in "\"'":
+            quote = ch
+            buf += ch
+            index += 1
+            continue
+        if ch == ".":
+            parts.append(buf)
+            buf = ""
+            index += 1
+            continue
+        buf += ch
+        index += 1
+    parts.append(buf)
+
+    out: list[str] = []
+    for part in parts:
         part = part.strip()
         if not part:
             raise TomlError(f"empty key segment in {key!r}")
-        parts.append(_unquote(part) if part[0] in "\"'" else part)
-    return parts
+        out.append(_unquote(part) if part[0] in "\"'" else part)
+    return out
 
 
 def _collect_value(chunk: str, lines: list[str], index: int) -> tuple[str, int]:

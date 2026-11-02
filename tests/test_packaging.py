@@ -130,22 +130,26 @@ def test_requires_python_matches_the_ci_matrix():
         assert version in text, f"CI does not test {version}, but requires-python is {requires}"
 
 
-def _optional_test_deps_present() -> bool:
-    """The badge is only meaningful where every test can run.
+def _full_environment() -> bool:
+    """The badge is only meaningful where every module collects.
 
-    test_mcp.py needs the optional `mcp` package; without it that module skips
-    and the collection count is smaller. Comparing the badge on a bare
-    interpreter failed for a week with no actual drift, so the check lives here
-    and is skipped unless the extra is installed.
+    Two things shrink the collection count on some legs without anything being
+    wrong: test_mcp.py needs the optional `mcp` package, and
+    test_pytoml_parity.py needs `tomllib` (3.11+). A module skipped at import
+    time contributes zero collected tests, so the count is environment-dependent
+    by construction. Comparing it anywhere but a complete install produced a
+    week of false alarms, so the check is skipped unless both are available.
     """
     import importlib.util
 
+    if sys.version_info < (3, 11):
+        return False
     return importlib.util.find_spec("mcp") is not None
 
 
 @pytest.mark.skipif(
-    not _optional_test_deps_present(),
-    reason="badge count is validated where the optional test deps are installed",
+    not _full_environment(),
+    reason="badge count is validated where every test module collects",
 )
 def test_readme_test_count_matches_collection():
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
