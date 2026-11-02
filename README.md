@@ -29,6 +29,18 @@ tlslint rules --category certificate
 version, one handshake per candidate cipher suite, the certificate chain, and
 one HTTP request on each side. It does not read a banner and guess.
 
+> **PyPI status.** The `Publish` job is red for one known reason: PyPI Trusted
+> Publishing has to be registered once in the PyPI UI before the first upload
+> can succeed, and that step is still pending. The tool itself is unaffected —
+> install from the repo instead (extras work the same way):
+>
+> ```bash
+> pip install "git+https://github.com/xuange-hu/tlslint.git"
+> ```
+>
+> Once the trusted publisher is registered the same job publishes to PyPI and
+> the command above works as written.
+
 <details open>
 <summary><code>tlslint scan</code> against the bundled weak lab server</summary>
 
