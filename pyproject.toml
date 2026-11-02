@@ -1,0 +1,104 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tlslint"
+version = "0.1.0"
+description = "TLS and X.509 audit with the bytes that prove each finding — 43 rules, an HCL-free DER reader, a local lab server, SARIF. Zero dependencies."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "xuange-hu" }]
+# The core is dependency-free on purpose: this runs on a jump host, in a slim
+# container, and on a runner with no package index.
+dependencies = []
+keywords = [
+  "tls",
+  "ssl",
+  "x509",
+  "certificate",
+  "https",
+  "hsts",
+  "cipher",
+  "security",
+  "scanner",
+  "sarif",
+  "mcp",
+  "model-context-protocol",
+  "devsecops",
+  "zero-dependencies",
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Information Technology",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Security",
+  "Topic :: System :: Networking",
+]
+
+[project.optional-dependencies]
+# mcp 2.x renamed FastMCP -> MCPServer and moved it; this server targets 1.x.
+mcp = ["mcp>=1.2,<2"]
+
+[project.urls]
+Homepage = "https://github.com/xuange-hu/tlslint"
+Repository = "https://github.com/xuange-hu/tlslint"
+Issues = "https://github.com/xuange-hu/tlslint/issues"
+
+[project.scripts]
+tlslint = "tlslint.cli:main"
+tlslint-mcp = "tlslint.mcp_server:main"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+tlslint = ["data/*.pem", "data/*.key", "data/demo/*.pem"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+# Naming a deprecated protocol version is the whole point of the version probe,
+# so the interpreter's complaint about it is not news.
+filterwarnings = [
+  "ignore:ssl.TLSVersion.*is deprecated:DeprecationWarning",
+]
+
+[tool.ruff]
+line-length = 130
+target-version = "py310"
+
+[tool.ruff.lint]
+select = [
+  "E",
+  "F",
+  "W",
+  "I",
+  "B",
+  "C4",
+  "UP",
+  "SIM",
+  "PL",
+  "RUF",
+]
+# PLC0415: the MCP facade and the CLI import lazily on purpose, so the
+# zero-dependency core stays importable without the optional extra.
+# PLR0911/PLR0917: a CLI dispatcher and a finding factory are allowed to be
+# wide; splitting either would make them harder to read, not easier.
+ignore = ["PLR0911", "PLR0912", "PLR0913", "PLR0915", "PLR0917", "PLR2004", "RUF001", "PLC0415"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["E501", "PLR2004", "PLW2901"]
+"src/tlslint/lab.py" = ["N802", "A002"]
+"src/tlslint/demo.py" = ["E501"]
