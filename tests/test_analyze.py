@@ -13,8 +13,25 @@ from datetime import datetime, timezone
 import pytest
 from helpers import NOW, load_all, load_one
 
-from tlslint.analyze import audit_certificate, audit_chain, audit_ciphers, audit_files, audit_protocols, covers
-from tlslint.model import CipherOffer, Finding, ProbeResult, ProtocolOffer, grade_for
+from tlslint.analyze import (
+    audit_certificate,
+    audit_chain,
+    audit_ciphers,
+    audit_files,
+    audit_probe,
+    audit_protocols,
+    covers,
+)
+from tlslint.model import (
+    CipherOffer,
+    Cookie,
+    Finding,
+    HttpProbe,
+    HttpResponse,
+    ProbeResult,
+    ProtocolOffer,
+    grade_for,
+)
 from tlslint.x509 import CertFacts
 
 # (fixture, rule that must fire on it) - the fixture was generated to be wrong
@@ -277,3 +294,28 @@ def test_audit_files_can_be_given_a_hostname_per_file():
     pairs = [("good.pem", load_one("good.pem"))]
     report = audit_files(pairs, hostnames={"good.pem": "elsewhere.test"}, now=NOW)
     assert "TLS027" in report.rule_ids()
+
+# -- cookies: each attribute judged on its own ---------------------------
+
+def _https_probe(*cookies):
+    resp = HttpResponse(status=200, cookies=list(cookies))
+    return _probe(http=HttpProbe(https=resp))
+
+
+def test_a_cookie_without_attributes_is_reported():
+    report = audit_probe(_https_probe(Cookie(name="sid")))
+    assert {"TLS056", "TLS057", "TLS058"} <= report.rule_ids()
+
+
+def test_a_fully_attributed_cookie_is_clean_for_the_cookie_rules():
+    good = Cookie(name="sid", secure=True, httponly=True, samesite="Lax")
+    report = audit_probe(_https_probe(good))
+    assert not {"TLS056", "TLS057", "TLS058"} & report.rule_ids()
+
+
+def test_each_cookie_attribute_is_judged_separately():
+    report = audit_probe(_https_probe(Cookie(name="sid", secure=True, httponly=True)))
+    ids = report.rule_ids()
+    assert "TLS056" not in ids
+    assert "TLS057" not in ids
+    assert "TLS058" in ids
