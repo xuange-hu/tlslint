@@ -3,7 +3,7 @@
 **审查 TLS 服务或证书，每条结论都附上证明它的字节 —— 43 条规则、自己写的 DER
 解析器、本地实验室服务器、SARIF 输出。零第三方依赖。**
 
-[![tests](https://img.shields.io/badge/tests-277%20passing-2ea44f)](https://github.com/xuange-hu/tlslint/actions)
+[![tests](https://img.shields.io/badge/tests-278%20passing-2ea44f)](https://github.com/xuange-hu/tlslint/actions)
 [![python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-3776ab)](https://pypi.org/project/tlslint/)
 [![dependencies](https://img.shields.io/badge/dependencies-0-2ea44f)](pyproject.toml)
 [![license](https://img.shields.io/badge/license-MIT-2ea44f)](LICENSE)

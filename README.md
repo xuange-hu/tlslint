@@ -4,7 +4,7 @@
 finding — 43 rules, a DER reader written from scratch, a local lab server,
 SARIF for CI. Zero dependencies.**
 
-[![tests](https://img.shields.io/badge/tests-277%20passing-2ea44f)](https://github.com/xuange-hu/tlslint/actions)
+[![tests](https://img.shields.io/badge/tests-278%20passing-2ea44f)](https://github.com/xuange-hu/tlslint/actions)
 [![python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-3776ab)](https://pypi.org/project/tlslint/)
 [![dependencies](https://img.shields.io/badge/dependencies-0-2ea44f)](pyproject.toml)
 [![license](https://img.shields.io/badge/license-MIT-2ea44f)](LICENSE)
@@ -247,7 +247,7 @@ git clone https://github.com/xuange-hu/tlslint
 cd tlslint
 pip install -e ".[mcp]" pytest ruff
 pytest                 # default: 240 tests in about 15s, lab servers skipped
-pytest --runslow       # all 277 tests in about 2.5 min, lab servers included
+pytest --runslow       # all 278 tests in about 2.5 min, lab servers included
 ruff check src tests
 ```
 

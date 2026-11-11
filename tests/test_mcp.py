@@ -245,3 +245,14 @@ def test_the_module_imports_without_mcp(monkeypatch):
     assert reloaded.TOOLS
     with pytest.raises(ModuleNotFoundError):
         reloaded.build_server()
+
+
+def test_every_served_tool_has_a_description():
+    """FastMCP serves an empty description when the registered function has no
+    docstring - an unidentified tool is an uncallable tool."""
+    pytest.importorskip("mcp")
+    import asyncio
+
+    server = mcp_server.build_server()
+    for t in asyncio.run(server.list_tools()):
+        assert (t.description or "").strip(), f"{t.name} has no description"
