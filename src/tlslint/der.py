@@ -83,8 +83,14 @@ def read_tlv(buf: bytes, offset: int = 0) -> Tlv:
             raise DerError(f"length at {offset} is {count} octets: too large to be real")
         if pos + count > len(buf):
             raise DerError(f"truncated: length at {offset} runs past the buffer")
+        if buf[pos] == 0:
+            # DER (X.690 8.1.3.5): the long form uses the fewest octets
+            # possible; a leading zero byte is how BER sneaks in.
+            raise DerError(f"length at {offset} has a leading zero octet: not minimal DER")
         length = int.from_bytes(buf[pos : pos + count], "big")
         pos += count
+        if length < 0x80:
+            raise DerError(f"length at {offset} is {length}: long form below 128 is not minimal DER")
     if pos + length > len(buf):
         raise DerError(f"truncated: element at {offset} claims {length} bytes, {len(buf) - pos} remain")
     return Tlv(tag=tag, start=offset, header_len=pos - offset, content=buf[pos : pos + length])
@@ -106,12 +112,25 @@ def children(buf: bytes, tlv: Tlv) -> list[Tlv]:
 def read_boolean(tlv: Tlv) -> bool:
     if tlv.tag != TAG_BOOLEAN or len(tlv.content) != 1:
         raise DerError(f"not a boolean at {tlv.start}")
-    return tlv.content[0] != 0
+    if tlv.content[0] not in (0x00, 0xFF):
+        # X.690 8.2.2: DER encodes TRUE as 0xFF and FALSE as 0x00, nothing
+        # else. OpenSSL rejects a 0x01 boolean outright, so we do too.
+        raise DerError(f"boolean at {tlv.start} is 0x{tlv.content[0]:02x}: DER allows only 00 or FF")
+    return tlv.content[0] == 0xFF
 
 
 def read_integer(tlv: Tlv) -> int:
     if tlv.tag != TAG_INTEGER or not tlv.content:
         raise DerError(f"not an integer at {tlv.start}")
+    if len(tlv.content) > 1:
+        head, second = tlv.content[0], tlv.content[1]
+        # X.690 8.3.2: the encoding must be the shortest that preserves the
+        # sign - a leading 00/FF is only legal when the next byte's top bit
+        # would otherwise flip the sign.
+        if head == 0x00 and second < 0x80:
+            raise DerError(f"integer at {tlv.start} has a redundant leading zero: not minimal DER")
+        if head == 0xFF and second >= 0x80:
+            raise DerError(f"integer at {tlv.start} has a redundant leading 0xFF: not minimal DER")
     return int.from_bytes(tlv.content, "big", signed=True)
 
 
@@ -119,11 +138,25 @@ def read_oid(tlv: Tlv) -> str:
     if tlv.tag != TAG_OID or not tlv.content:
         raise DerError(f"not an OID at {tlv.start}")
     data = tlv.content
-    first = data[0]
-    parts = [str(first // 40), str(first % 40)]
+    # The first subidentifier (40*X + Y) is itself base-128: for X=2 and a
+    # large Y it reaches 40*2+999 = 1079 (the example arc 2.999), which takes
+    # two octets. Reading only data[0] decoded 2.999.1 as 3.16.55.1.
+    idx = 0
+    first = 0
+    while True:
+        if idx >= len(data):
+            raise DerError(f"OID at {tlv.start} ends mid-subidentifier")
+        byte = data[idx]
+        idx += 1
+        first = (first << 7) | (byte & 0x7F)
+        if not byte & 0x80:
+            break
+    # X.660 caps the first arc at 2, so 1079 must split as 2.999, never 26.39.
+    arc0 = 0 if first < 40 else (1 if first < 80 else 2)
+    parts = [str(arc0), str(first - 40 * arc0)]
     value = 0
     started = False
-    for byte in data[1:]:
+    for byte in data[idx:]:
         value = (value << 7) | (byte & 0x7F)
         started = True
         if not byte & 0x80:
@@ -155,4 +188,10 @@ def read_bit_string(tlv: Tlv) -> tuple[int, bytes]:
     if tlv.tag != TAG_BIT_STRING or not tlv.content:
         raise DerError(f"not a bit string at {tlv.start}")
     unused = tlv.content[0]
+    if unused > 7:
+        # X.690 8.6.2.2: the initial octet counts 0-7 unused bits in the
+        # final octet; 8+ would mean a whole octet that does not exist.
+        raise DerError(f"bit string at {tlv.start} says {unused} unused bits: at most 7")
+    if unused and len(tlv.content) == 1:
+        raise DerError(f"bit string at {tlv.start} says {unused} unused bits but has no content octet")
     return unused, tlv.content[1:]

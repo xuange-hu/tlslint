@@ -168,3 +168,83 @@ def test_hex_helper_truncates_long_content():
     tlv = read_tlv(bytes([TAG_OCTET_STRING, 40]) + bytes(40))
     text = tlv.hex(limit=8)
     assert "(+32 bytes)" in text
+
+
+# -- canonical-form checks (X.690): OpenSSL rejects all of these, so we
+# must too - a reader that accepts what every client refuses just moves the
+# failure somewhere more confusing. --------------------------------------
+
+
+def test_oid_first_subidentifier_can_be_multi_byte():
+    # 2.999.1 -> first subidentifier is 40*2+999 = 1079 = 0x88 0x37.
+    # Reading only the first byte decoded this as 3.16.55.1.
+    tlv = read_tlv(bytes([TAG_OID, 3, 0x88, 0x37, 0x01]))
+    assert read_oid(tlv) == "2.999.1"
+
+
+def test_oid_first_arc_is_capped_at_two():
+    # 1079 must split as 2.999, never 26.39 (X.660: first arc is 0, 1 or 2).
+    tlv = read_tlv(bytes([TAG_OID, 3, 0x88, 0x37, 0x00]))
+    assert read_oid(tlv).startswith("2.")
+
+
+def test_oid_that_ends_inside_the_first_subidentifier_is_rejected():
+    tlv = read_tlv(bytes([TAG_OID, 1, 0x88]))
+    with pytest.raises(DerError, match="mid-subidentifier"):
+        read_oid(tlv)
+
+
+def test_long_form_length_below_128_is_rejected():
+    # 0x81 0x05 says "long form, one octet, length 5" - DER requires 0x05.
+    with pytest.raises(DerError, match="not minimal"):
+        read_tlv(bytes([TAG_SEQUENCE, 0x81, 0x05]) + b"AAAAA")
+
+
+def test_length_with_a_leading_zero_octet_is_rejected():
+    # 0x82 0x00 0x80: the leading zero wastes an octet - BER, not DER.
+    with pytest.raises(DerError, match="leading zero"):
+        read_tlv(bytes([TAG_SEQUENCE, 0x82, 0x00, 0x80]) + bytes(0x80))
+
+
+def test_non_minimal_positive_integer_is_rejected():
+    # 02 02 00 41 == 65, but 65 must be encoded 02 01 41.
+    with pytest.raises(DerError, match="redundant leading zero"):
+        read_integer(read_tlv(bytes([TAG_INTEGER, 2, 0x00, 0x41])))
+
+
+def test_non_minimal_negative_integer_is_rejected():
+    # FF FF 80 == -129 with a wasted sign-extension octet.
+    with pytest.raises(DerError, match="redundant leading 0xFF"):
+        read_integer(read_tlv(bytes([TAG_INTEGER, 3, 0xFF, 0xFF, 0x80])))
+
+
+def test_sign_protecting_leading_zero_is_still_allowed():
+    # 02 02 00 80 == 128: the zero is required so the value stays positive.
+    assert read_integer(read_tlv(bytes([TAG_INTEGER, 2, 0x00, 0x80]))) == 128
+    # 02 02 FF 7F == -129: the FF is required so the value stays negative.
+    assert read_integer(read_tlv(bytes([TAG_INTEGER, 2, 0xFF, 0x7F]))) == -129
+
+
+def test_boolean_other_than_00_or_ff_is_rejected():
+    # X.690 8.2.2: TRUE is 0xFF. OpenSSL refuses 0x01 outright.
+    with pytest.raises(DerError, match="00 or FF"):
+        read_boolean(read_tlv(bytes([0x01, 1, 0x01])))
+
+
+def test_bit_string_with_more_than_seven_unused_bits_is_rejected():
+    with pytest.raises(DerError, match="at most 7"):
+        read_bit_string(read_tlv(bytes([0x03, 2, 8, 0xFF])))
+
+
+def test_bit_string_claiming_unused_bits_with_no_content_is_rejected():
+    with pytest.raises(DerError, match="no content octet"):
+        read_bit_string(read_tlv(bytes([0x03, 1, 4])))
+
+
+def test_malformed_der_arrives_as_cert_error_not_der_error():
+    # The CLI catches CertError only; a raw DerError escaping parse_certificate
+    # would put a traceback in the user's shell instead of a message.
+    from tlslint.x509 import CertError, parse_certificate
+
+    with pytest.raises(CertError):
+        parse_certificate(bytes([TAG_SEQUENCE, 0x81, 0x05]) + b"AAAAA")

@@ -186,9 +186,15 @@ def load_certificates(data: bytes, source: str = "<memory>") -> list[CertFacts]:
 
 def parse_certificate(der_bytes: bytes, source: str = "<memory>") -> CertFacts:
     try:
-        cert = read_tlv(der_bytes, 0)
+        return _parse_certificate(der_bytes, source)
     except DerError as exc:
+        # The CLI catches CertError only; every malformed-DER path has to
+        # arrive there as one or a traceback escapes into the user's shell.
         raise CertError(f"{source}: {exc}") from exc
+
+
+def _parse_certificate(der_bytes: bytes, source: str) -> CertFacts:
+    cert = read_tlv(der_bytes, 0)
     if cert.tag != der.TAG_SEQUENCE:
         raise CertError(f"{source}: certificate is not a SEQUENCE (tag 0x{cert.tag:02x})")
 
