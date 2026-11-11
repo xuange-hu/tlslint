@@ -130,12 +130,14 @@ def test_candidate_ciphers_is_not_empty():
     assert candidate_ciphers()
 
 
+@pytest.mark.slow
 def test_an_unreachable_target_is_reported_not_raised():
     result = handshake("127.0.0.1", 1, "127.0.0.1", timeout=1.0)
     assert result.ok is False
     assert result.error
 
 
+@pytest.mark.slow
 def test_read_chain_on_a_closed_port():
     ders, kind, error = read_chain("127.0.0.1", 1, "127.0.0.1", timeout=1.0)
     assert ders == []
@@ -143,22 +145,26 @@ def test_read_chain_on_a_closed_port():
     assert error
 
 
+@pytest.mark.slow
 def test_verify_chain_on_a_closed_port():
     kind, error = verify_chain("127.0.0.1", 1, "127.0.0.1", timeout=1.0)
     assert kind in {"unknown", "unreachable", "untrusted"}
     assert error is None or isinstance(error, str)
 
 
+@pytest.mark.slow
 def test_protocol_probe_on_a_closed_port_refuses_everything():
     offers, _errors = probe_protocols("127.0.0.1", 1, "127.0.0.1", timeout=1.0)
     assert offers
     assert all(o.offered is False for o in offers)
 
 
+@pytest.mark.slow
 def test_suite_enumeration_on_a_closed_port_is_empty():
     assert probe_ciphers("127.0.0.1", 1, "127.0.0.1", timeout=1.0, names=["AES128-SHA"], workers=2) == []
 
 
+@pytest.mark.slow
 def test_http_probe_on_a_closed_port_is_empty_and_does_not_raise():
     probe = probe_http("127.0.0.1", 1, plain_port=1, timeout=1.0)
     assert isinstance(probe, HttpProbe)

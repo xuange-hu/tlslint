@@ -85,6 +85,7 @@ def test_cert_tool_with_a_hostname():
     assert "TLS027" in text
 
 
+@pytest.mark.slow
 def test_sarif_tool_writes_a_file(tmp_path):
     from tlslint import lab
 
@@ -98,6 +99,7 @@ def test_sarif_tool_writes_a_file(tmp_path):
         server.stop()
 
 
+@pytest.mark.slow
 def test_grade_tool_on_a_lab_server():
     from tlslint import lab
 
@@ -110,6 +112,7 @@ def test_grade_tool_on_a_lab_server():
         server.stop()
 
 
+@pytest.mark.slow
 def test_grade_tool_honours_fail_on():
     from tlslint import lab
 
@@ -122,6 +125,7 @@ def test_grade_tool_honours_fail_on():
         server.stop()
 
 
+@pytest.mark.slow
 def test_scan_tool_on_a_lab_server():
     from tlslint import lab
 
@@ -133,11 +137,13 @@ def test_scan_tool_on_a_lab_server():
         server.stop()
 
 
+@pytest.mark.slow
 def test_demo_tool():
     text = mcp_server.tlslint_demo()
     assert "grade" in text
 
 
+@pytest.mark.slow
 def test_scan_tool_json_shape():
     from tlslint import lab
 

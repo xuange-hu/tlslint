@@ -13,10 +13,16 @@ the build. So the contract is written in two halves:
 
 from __future__ import annotations
 
+import pytest
+
 from tlslint import demo as demo_mod
 from tlslint import lab as lab_mod
 from tlslint.analyze import audit_probe
 from tlslint.probe import probe
+
+# Every test in this module starts a lab server or probes one, so the
+# whole module is slow: run it with ``pytest --runslow``.
+pytestmark = pytest.mark.slow
 
 # Rules the fixtures guarantee, because the clock is fixed and the files are
 # checked in.

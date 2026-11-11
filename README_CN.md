@@ -159,7 +159,8 @@ http://127.0.0.1:8080
 git clone https://github.com/xuange-hu/tlslint
 cd tlslint
 pip install -e ".[mcp]" pytest ruff
-pytest                 # 273 tests
+pytest                 # 默认 236 个，约 15 秒，跳过 lab 服务端
+pytest --runslow       # 全部 273 个，约 2.5 分钟，含 lab 服务端
 ruff check src tests
 ```
 

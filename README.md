@@ -234,7 +234,8 @@ The only third-party package in the whole picture is `mcp`, and it is optional.
 git clone https://github.com/xuange-hu/tlslint
 cd tlslint
 pip install -e ".[mcp]" pytest ruff
-pytest                 # 273 tests
+pytest                 # default: 236 tests in about 15s, lab servers skipped
+pytest --runslow       # all 273 tests in about 2.5 min, lab servers included
 ruff check src tests
 ```
 

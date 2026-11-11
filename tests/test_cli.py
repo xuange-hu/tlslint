@@ -98,6 +98,7 @@ def test_cert_accepts_a_bundle(capsys):
     assert "TLS029" in out  # the self-signed half of the bundle
 
 
+@pytest.mark.slow
 def test_scan_reports_a_closed_port(capsys):
     # port 1 on loopback refuses the connection; the scan still produces a
     # report rather than a traceback
@@ -106,16 +107,19 @@ def test_scan_reports_a_closed_port(capsys):
     assert "grade" in out
 
 
+@pytest.mark.slow
 def test_scan_json(capsys):
     assert main(["scan", "127.0.0.1:1", "--timeout", "1", "--quick", "--no-http", "--json"]) == 0
     json.loads(capsys.readouterr().out)
 
 
+@pytest.mark.slow
 def test_scan_quiet(capsys):
     assert main(["scan", "127.0.0.1:1", "--timeout", "1", "--quick", "--no-http", "--quiet"]) == 0
     assert "grade" in capsys.readouterr().out
 
 
+@pytest.mark.slow
 def test_demo_runs_offline(capsys):
     assert main(["demo"]) == 0
     out = capsys.readouterr().out
@@ -123,12 +127,14 @@ def test_demo_runs_offline(capsys):
     assert "no connection left the machine" in out
 
 
+@pytest.mark.slow
 def test_demo_json(capsys):
     assert main(["demo", "--json"]) == 0
     payload = json.loads(capsys.readouterr().out)
     assert payload["findings"]
 
 
+@pytest.mark.slow
 def test_a_lab_server_can_be_started_and_scanned(capsys):
     # The lab is the only way to scan something real without the network, so
     # the CLI path that uses it is exercised end to end here.
