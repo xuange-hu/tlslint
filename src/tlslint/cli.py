@@ -51,7 +51,7 @@ def build_parser() -> argparse.ArgumentParser:
     scan.add_argument("--plain-port", type=int, default=80, help="port to send the plain HTTP request to")
     scan.add_argument("--json", action="store_true")
     scan.add_argument("--sarif", metavar="PATH", help="also write a SARIF 2.1.0 report")
-    scan.add_argument("--fail-on", choices=SEVERITIES, help="exit 1 when a finding at this level or worse exists")
+    scan.add_argument("--fail-on", choices=(*SEVERITIES, "none"), help="exit 1 when a finding at this level or worse exists")
     _add_output(scan)
 
     cert = sub.add_parser("cert", help="read certificates from disk, no connection")
@@ -60,7 +60,7 @@ def build_parser() -> argparse.ArgumentParser:
     cert.add_argument("--now", help="judge validity against this ISO-8601 instant instead of now")
     cert.add_argument("--json", action="store_true")
     cert.add_argument("--sarif", metavar="PATH")
-    cert.add_argument("--fail-on", choices=SEVERITIES)
+    cert.add_argument("--fail-on", choices=(*SEVERITIES, "none"))
 
     rules = sub.add_parser("rules", help="list the rules")
     rules.add_argument("--category", choices=sorted(CATEGORIES))
@@ -97,7 +97,7 @@ def _emit(report, as_json: bool, quiet: bool, sarif_path: str | None) -> None:
 
 
 def _exit_code(report, fail_on: str | None) -> int:
-    if fail_on is None:
+    if fail_on is None or fail_on == "none":
         return EXIT_CLEAN
     if report.worst() is not None and rank(report.worst()) <= rank(fail_on):
         return EXIT_FOUND

@@ -63,6 +63,13 @@ def test_cert_fail_on_high_when_only_low_exists():
     assert main(["cert", str(fixture_path("good.pem")), "--fail-on", "high"]) == 0
 
 
+def test_cert_fail_on_none_never_fails():
+    """`none` is the report-only gate: the expired cert is a critical finding
+    that still exits 0 when the operator asked not to gate on it."""
+    assert main(["cert", str(fixture_path("expired.pem")), "--fail-on", "critical"]) == 1
+    assert main(["cert", str(fixture_path("expired.pem")), "--fail-on", "none"]) == 0
+
+
 def test_cert_with_a_now_argument(capsys):
     # good.pem is valid in 2026 and expired long after; the verdict follows the
     # clock that was passed in, not the machine's

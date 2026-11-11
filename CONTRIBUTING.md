@@ -8,7 +8,7 @@
 git clone https://github.com/xuange-hu/specvet
 cd specvet
 pip install -e ".[mcp]" pytest ruff
-pytest                 # 307 tests
+pytest                 # 274 tests
 ruff check src tests
 ```
 
