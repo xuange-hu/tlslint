@@ -17,6 +17,18 @@ $ tlslint demo          # no network, five local servers, 37 of the 43 rules
 
 ---
 
+## Contents
+
+- [Three commands, sixty seconds](#three-commands-sixty-seconds)
+- [Why another TLS scanner](#why-another-tls-scanner)
+- [The rules](#the-rules)
+- [Command line](#command-line)
+- [CI](#ci)
+- [MCP server](#mcp-server)
+- [The lab](#the-lab)
+- [How it is built](#how-it-is-built)
+- [Tests](#tests)
+
 ## Three commands, sixty seconds
 
 ```bash
